@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id           String       @id @default(uuid())
+  name         String       @db.VarChar(250)
+  email        String       @unique @db.VarChar(100)
+  password     String       @db.VarChar(100)
+  profileImage String?      @map("profile_image") @db.VarChar(255)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamp(6)
+  feeds        Feeds[]
+  comments     Comments[]
+  feedsLikes   FeedsLikes[]
+  spotChecks   SpotCheck[]
+
+  @@map("users")
+}
+
+model Comments {
+  id        String     @id @default(uuid())
+  content   String     @db.Text
+  senderId  String     @map("sender_id")
+  commentId String?    @map("comment_id")
+  feedId    String     @map("feed_id")
+  feed      Feeds      @relation(fields: [feedId], references: [id], onDelete: Cascade, map: "comments_feed_id_fkey")
+  replied   Comments?  @relation("CommentReplies", fields: [commentId], references: [id], onDelete: Cascade, map: "comments_replied_id_fkey")
+  sender    Users      @relation(fields: [senderId], references: [id], onDelete: Cascade, map: "comments_sender_id_fkey")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  comments  Comments[]
+
+  @@map("comments")
+}
+
+model Feeds {
+  id           String       @id @default(uuid())
+  imageContent String?      @map("image_content") @db.VarChar(255)
+  description  String?      @db.Text
+  userId       String       @map("user_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  user         Users        @relation(fields: [userId], references: [id], onDelete: Cascade, map: "feeds_user_id_fkey")
+  comments     Comments[]
+  feedsLikes   FeedsLikes[]
+
+  @@map("feeds")
+}
+
+model FeedsLikes {
+  id        String   @id @default(uuid())
+  feedId    String   @map("feed_id")
+  userId    String   @map("user_id")
+  feed      Feeds    @relation(fields: [feedId], references: [id], onDelete: Cascade, map: "feeds_likes_feed_id_fkey")
+  user      Users    @relation(fields: [userId], references: [id], onDelete: Cascade, map: "feeds_likes_user_id_fkey")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([feedId, userId], name: "feeds_likes_feed_id_user_id_key")
+  @@map("feeds_likes")
+}
+
+model CoffeSpot {
+  id         String      @id @default(uuid())
+  name       String      @db.VarChar(100)
+  address    String?     @db.Text
+  urlAddress String?     @map("url_address") @db.VarChar(255)
+  urlBlog    String?     @map("url_blog") @db.VarChar(25)
+  image      String?     @db.VarChar(255)
+  contact    String?     @db.VarChar(20)
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+  spotChecks SpotCheck[]
+
+  @@map("coffe_spot")
+}
+
+model SpotCheck {
+  id        String    @id @default(uuid())
+  spotId    String    @map("spot_id")
+  userId    String    @map("user_id")
+  lastVisit DateTime  @map("last_visit")
+  checkNum  Int       @map("check_num")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  spot      CoffeSpot @relation(fields: [spotId], references: [id], onDelete: Cascade, map: "spot_check_spot_id_fkey")
+  user      Users     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "spot_check_user_id_fkey")
+
+  @@map("spot_check")
+}
