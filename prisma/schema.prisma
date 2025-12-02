@@ -28,13 +28,14 @@ model Comments {
   content   String     @db.Text
   senderId  String     @map("sender_id")
   commentId String?    @map("comment_id")
+  parentId String?    @map("parent_id")
   feedId    String     @map("feed_id")
   feed      Feeds      @relation(fields: [feedId], references: [id], onDelete: Cascade, map: "comments_feed_id_fkey")
-  replied   Comments?  @relation("CommentReplies", fields: [commentId], references: [id], onDelete: Cascade, map: "comments_replied_id_fkey")
+  replies   Comments[] @relation("CommentReplies")
+  parent    Comments?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade, map: "comments_parent_id_fkey")
   sender    Users      @relation(fields: [senderId], references: [id], onDelete: Cascade, map: "comments_sender_id_fkey")
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
-  comments  Comments[]
 
   @@map("comments")
 }
@@ -70,7 +71,7 @@ model CoffeSpot {
   name       String      @db.VarChar(100)
   address    String?     @db.Text
   urlAddress String?     @map("url_address") @db.VarChar(255)
-  urlBlog    String?     @map("url_blog") @db.VarChar(25)
+  urlBlog    String?     @map("url_blog") @db.VarChar(255)
   image      String?     @db.VarChar(255)
   contact    String?     @db.VarChar(20)
   createdAt  DateTime    @default(now()) @map("created_at")
@@ -85,7 +86,7 @@ model SpotCheck {
   spotId    String    @map("spot_id")
   userId    String    @map("user_id")
   lastVisit DateTime  @map("last_visit")
-  checkNum  Int       @map("check_num")
+  checkNum  Int       @map("check_num") @default(1)
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   spot      CoffeSpot @relation(fields: [spotId], references: [id], onDelete: Cascade, map: "spot_check_spot_id_fkey")
