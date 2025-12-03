@@ -9,6 +9,8 @@ import { authMiddleware } from './middleware/auth.js';
 
 const app = express();
 env.config();
+
+// Parsing request to JSON
 app.use(express.json());
 
 app.use('/auth', authRoutes);
@@ -16,6 +18,7 @@ app.use('/register', registerRoutes);
 
 // Middleware untuk autentikasi
 app.use(authMiddleware);
+
 app.use('/feeds', feedsRoutes);
 app.use('/coffee-spot', coffeeSpotRoutes);
 app.use('/users', usersRoutes)

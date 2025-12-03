@@ -4,12 +4,40 @@ import { prismaClient } from '../src/prisma-client.js';
 
 const router = express.Router();
 
+import { z } from 'zod';
+import { validateBody } from '../utils/validate-body.js';
 
-router.get('/', async (req, res) => {
+const schemaValidation = z.object({
+    feedId: z.string().refine((data) => data.length > 0, { message: "Feed ID is required" }),
+    description: z.coerce.string().refine((data) => data.length > 0, { message: "Field is required" }),
+    senderId: z.string().refine((data) => data.length > 0, { message: "Sender ID is required" }),
+});
+
+router.post('/', async (req, res) => {
+    validateBody(schemaValidation)
+    try {
+        const data = req.validatedBody;
+        const comment = await prismaClient.comments.create({
+            data: {
+                feedId: data.feedId,
+                description: data.description,
+                senderId: data.senderId,
+            },
+            include: { sender: true },
+        });
+        res.status(201).json(comment);
+    } catch (error) {
+        console.error("Failed to create comment:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+});
+
+router.get('/:id', async (req, res) => {
+    const { id } = req.params;
     try {
         const data = await prismaClient.comments.findMany({
-            where: { feedId: req.query.feedId || undefined },
-            include: { sender: true, replies: true, parent  }
+            where: { AND: [{ feedId: id }, { parentId: null }] },
+            include: { sender: true, replies: true}
         });
         res.json(data);
     } catch (error) {

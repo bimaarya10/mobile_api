@@ -9,7 +9,6 @@ import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
-
 const router = express.Router();
 const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 }
@@ -20,6 +19,7 @@ const maxProfileImageSize = 2 * 1024 * 1024;
 
 const schemaValidation = z.object({
     name: z.coerce.string().refine((data) => data.length > 0, { message: "Field is required" }),
+    username: z.coerce.string().refine((data) => data.length > 0, { message: "Field is required" }),
     email: z.coerce.string().email({ message: "Invalid email address" }).refine((data) => data.length > 0, { message: "Field is required" }),
     password: z.coerce.string().min(8, { message: "Password must be at least 8 characters long" }).refine((data) => data.length > 0, { message: "Field is required" }),
     profileImage: z.any().optional().refine(
@@ -66,6 +66,7 @@ router.post('/',
                 data : {
                     name: data.name,
                     email: data.email,
+                    username: data.username,
                     password: data.password,
                     profileImage: data.profileImage || null,
                 }

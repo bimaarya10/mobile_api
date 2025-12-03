@@ -4,7 +4,6 @@ import { prismaClient } from '../src/prisma-client.js';
 
 const router = express.Router();
 
-
 router.get('/', async (req, res) => {
     try {
         const data = await prismaClient.coffeSpot.findMany();

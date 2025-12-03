@@ -11,7 +11,7 @@ export const validateBody = (schema) => async (req, res, next) => {
                     try {
 
                         const trimmed = body[key].trim();
-                        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+                        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
                             (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
                             body[key] = JSON.parse(body[key]);
                         }
@@ -24,10 +24,20 @@ export const validateBody = (schema) => async (req, res, next) => {
         const result = await schema.safeParseAsync(body);
 
         if (!result.success) {
+            const formattedErrors = {};
+
+            result.error.issues.forEach((issue) => {
+                const fieldName = issue.path[0];
+                if (fieldName) {
+                    formattedErrors[fieldName] = {
+                        message: issue.message
+                    };
+                }
+            });
             return res.status(422).json({
                 statusCode: 422,
                 statusMessage: "Validation Error",
-                data: result.error.issues, // Detail error Zod
+                data: formattedErrors, // Detail error Zod
             });
         }
 
@@ -35,10 +45,10 @@ export const validateBody = (schema) => async (req, res, next) => {
 
         if (req.files || req.file) {
             const files = req.files || (req.file ? [req.file] : []);
-            
+
             req.validatedBody.getFile = (fieldName) => {
                 let foundFile;
-                
+
                 if (Array.isArray(files)) {
                     foundFile = files.find(f => f.fieldname === fieldName);
                 } else if (typeof files === 'object') {
