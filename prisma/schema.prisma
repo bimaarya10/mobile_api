@@ -13,62 +13,62 @@ model Users {
   name         String       @db.VarChar(250)
   username     String       @unique @db.VarChar(50)
   email        String       @unique @db.VarChar(100)
+  region       String?      @db.VarChar(100)
+  sex          String?       @db.VarChar(10)
   password     String       @db.VarChar(100)
   profileImage String?      @map("profile_image") @db.VarChar(255)
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamp(6)
-  feeds        Feeds[]
-  comments     Comments[]
-  feedsLikes   FeedsLikes[]
   spotChecks   SpotCheck[]
-
+  chats        Chats[]
+  ownedRooms   RoomChat[]    @relation("RoomChatCreatedBy")
+  rooms        RoomParticipants[]
   @@map("users")
 }
 
-model Comments {
-  id        String     @id @default(uuid())
-  description  String     @db.Text
-  senderId  String     @map("sender_id")
-  commentId String?    @map("comment_id")
-  parentId String?    @map("parent_id")
-  feedId    String     @map("feed_id")
-  feed      Feeds      @relation(fields: [feedId], references: [id], onDelete: Cascade, map: "comments_feed_id_fkey")
-  replies   Comments[] @relation("CommentReplies")
-  parent    Comments?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade, map: "comments_parent_id_fkey")
-  sender    Users      @relation(fields: [senderId], references: [id], onDelete: Cascade, map: "comments_sender_id_fkey")
-  createdAt DateTime   @default(now()) @map("created_at")
-  updatedAt DateTime   @updatedAt @map("updated_at")
+model Chats{
+  id          String      @id @default(uuid())
+  roomId      String      @map("room_id")
+  senderId    String      @map("sender_id")
+  message     String      @db.Text
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  roomChat    RoomChat    @relation(fields: [roomId], references: [id], onDelete: Cascade, map: "chats_room_chat_id_fkey")
+  sender      Users       @relation(fields: [senderId], references: [id], onDelete: Cascade, map: "chats_sender_id_fkey")
 
-  @@map("comments")
+  @@map("chats")
 }
 
-model Feeds {
-  id           String       @id @default(uuid())
-  imageContent String?      @map("image_content") @db.VarChar(255)
-  description  String?      @db.Text
-  userId       String       @map("user_id")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
-  user         Users        @relation(fields: [userId], references: [id], onDelete: Cascade, map: "feeds_user_id_fkey")
-  comments     Comments[]
-  feedsLikes   FeedsLikes[]
+model RoomParticipants{
+  id          String      @id @default(uuid())
+  roomId      String      @map("room_id")
+  userId      String      @map("user_id")
+  joinedAt    DateTime    @default(now()) @map("joined_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  roomChat    RoomChat    @relation(fields: [roomId], references: [id], onDelete: Cascade, map: "room_participants_room_id_fkey")
+  user        Users       @relation(fields: [userId], references: [id], onDelete: Cascade, map: "room_participants_user_id_fkey")
 
-  @@map("feeds")
+  @@unique([userId, roomId], name: "unique_user_room")
+  @@map("room_participants")
 }
 
-model FeedsLikes {
-  id        String   @id @default(uuid())
-  feedId    String   @map("feed_id")
-  userId    String   @map("user_id")
-  feed      Feeds    @relation(fields: [feedId], references: [id], onDelete: Cascade, map: "feeds_likes_feed_id_fkey")
-  user      Users    @relation(fields: [userId], references: [id], onDelete: Cascade, map: "feeds_likes_user_id_fkey")
-  createdAt DateTime @default(now()) @map("created_at")
+model RoomChat {
+  id            String      @id @default(uuid())
+  name          String      @db.VarChar(100)
+  profileImage  String?     @map("profile_image") @db.VarChar(255)
+  maxMember     Int         @map("max_member") @default(10)
+  createdById   String      @map("created_by_id")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  createdBy     Users       @relation("RoomChatCreatedBy",fields: [createdById], references: [id], onDelete: Cascade, map: "room_chat_created_by_id_fkey")
+  chats         Chats[]
+  participants  RoomParticipants[]
 
-  @@unique([feedId, userId], name: "feeds_likes_feed_id_user_id_key")
-  @@map("feeds_likes")
+  @@map("room_chat")
 }
 
-model CoffeSpot {
+model CoffeeSpot {
   id         String      @id @default(uuid())
   name       String      @db.VarChar(100)
   address    String?     @db.Text
@@ -80,7 +80,7 @@ model CoffeSpot {
   updatedAt  DateTime    @updatedAt @map("updated_at")
   spotChecks SpotCheck[]
 
-  @@map("coffe_spot")
+  @@map("coffee_spot")
 }
 
 model SpotCheck {
@@ -91,7 +91,7 @@ model SpotCheck {
   checkNum  Int       @map("check_num") @default(1)
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
-  spot      CoffeSpot @relation(fields: [spotId], references: [id], onDelete: Cascade, map: "spot_check_spot_id_fkey")
+  spot      CoffeeSpot @relation(fields: [spotId], references: [id], onDelete: Cascade, map: "spot_check_spot_id_fkey")
   user      Users     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "spot_check_user_id_fkey")
 
   @@map("spot_check")
