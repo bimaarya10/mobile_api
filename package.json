@@ -15,7 +15,7 @@
     "prisma": "6.18.0"
   },
   "scripts": {
-    "start:prod" : "NODE_ENV=production node app.js",
+    "start:prod" : "NODE_ENV=production nodemon app.js",
     "start": "node app.js",
     "dev": "nodemon app.js"
   }
