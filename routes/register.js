@@ -28,6 +28,8 @@ const schemaValidation = z.object({
     ).refine((image) => !image || typeof image === 'string' || image.size <= maxProfileImageSize,
         "Max image size is 2MB"
     ),
+    region : z.coerce.string().optional(),
+    sex : z.coerce.string().optional(),
 });
 
 const __filename = fileURLToPath(import.meta.url);
@@ -69,6 +71,8 @@ router.post('/',
                     username: data.username,
                     password: data.password,
                     profileImage: data.profileImage || null,
+                    region: data.region || null,
+                    sex: data.sex || null,
                 }
             })
             res.status(201).json(newUser);

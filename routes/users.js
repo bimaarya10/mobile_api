@@ -1,8 +1,7 @@
 import express from 'express';
-
 import { prismaClient } from '../src/prisma-client.js';
 import z from 'zod';
-import { comparePassword } from '../utils/hash-password.js';
+import { comparePassword, hashPassword } from '../utils/hash-password.js';
 import { validateBody } from '../utils/validate-body.js';
 
 const router = express.Router();
@@ -11,6 +10,8 @@ const schemaValidation = z.object({
     name: z.coerce.string().refine((data) => data.length > 0, { message: "Field is required" }),
     username: z.coerce.string().refine((data) => data.length > 0, { message: "Field is required" }),
     email: z.coerce.string().email({ message: "Invalid email address" }).refine((data) => data.length > 0, { message: "Field is required" }),
+    region: z.coerce.string().optional(),
+    sex: z.coerce.string().optional(),
 })
 
 const passwordValidation = z.object({
@@ -20,7 +21,17 @@ const passwordValidation = z.object({
 
 router.get('/', async (req, res) => {
     try {
-        const data = await prismaClient.users.findMany();
+        const data = await prismaClient.users.findMany({
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                email: true,
+                profileImage: true,
+                region: true,
+                sex: true,
+            }
+        });
         res.json(data);
     } catch (error) {
         console.error("Failed to fetch data from database:", error);
@@ -28,9 +39,8 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.put('/detail/:id', async (req, res) => {
+router.put('/detail/:id', validateBody(schemaValidation), async (req, res) => {
     const { id } = req.params;
-    validateBody(schemaValidation)
     try {
         const data = req.validatedBody
         const updatedUser = await prismaClient.users.update({
@@ -39,16 +49,19 @@ router.put('/detail/:id', async (req, res) => {
                 name: data.name,
                 username: data.username,
                 email: data.email,
+                region: data.region,
+                sex: data.sex,
             }
         });
-        res.status(200).json(updatedUser);
+        res.status(200).json({message: "User updated successfully"});
     } catch (error) {
         console.error("Failed to update user:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
 });
 
-router.put('/change-password/:id', async (req, res) => {
+router.put('/change-password/:id',
+    validateBody(passwordValidation), async (req, res) => {
     const { id } = req.params;
     const user = await prismaClient.users.findUnique({
         where: { id: id }
@@ -58,7 +71,6 @@ router.put('/change-password/:id', async (req, res) => {
         return res.status(404).json({ message: "User not found" });
     }
 
-    validateBody(passwordValidation)
     try {
         const { oldPassword, newPassword } = req.validatedBody;
 
@@ -72,7 +84,7 @@ router.put('/change-password/:id', async (req, res) => {
                 password: await hashPassword(newPassword),
             }
         });
-        res.status(200).json(updatedUser);
+        res.status(200).json({ message: "Password updated successfully" });
     } catch (error) {
         console.error("Failed to update user password:", error);
         res.status(500).json({ message: "Internal Server Error" });
@@ -84,11 +96,18 @@ router.get('/detail/:id', async (req, res) => {
     try {
         const spot = await prismaClient.users.findUnique({
             where: { id: id },
-            include: {
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                email: true,
+                profileImage: true,
+                region: true,
+                sex: true,
                 ownedRooms: true,
-                roomParticipants: true,
+                rooms: true,
                 spotChecks: true
-            },
+            }
         });
         if (spot) {
             res.json(spot);
