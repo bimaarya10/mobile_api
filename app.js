@@ -91,8 +91,9 @@ io.on('connection', (socket) => {
 app.use('/coffee-spot', coffeeSpotRoutes);
 app.use('/users', usersRoutes)
 
+const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 const port = 3000;
 
-server.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+server.listen(port, host, () => {
+  console.log(`Server is running on http://${host}:${port}`);
 });
