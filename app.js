@@ -27,7 +27,6 @@ app.use(express.json());
 
 app.use('/auth', authRoutes);
 app.use('/register', registerRoutes);
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Middleware untuk autentikasi
 app.use(authMiddleware);
