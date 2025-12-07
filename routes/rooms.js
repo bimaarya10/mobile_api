@@ -2,6 +2,12 @@ import express from 'express';
 
 import { prismaClient } from '../src/prisma-client.js';
 import { validateBody } from '../utils/validate-body.js';
+import multer from 'multer';
+import { fileURLToPath } from 'url';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import z from 'zod';
 
 const router = express.Router();
 
@@ -30,56 +36,61 @@ const __dirname = path.dirname(__filename);
 
 const STORAGE_PATH = path.join(__dirname, '../public/uploads');
 
-router.post('/', async (req, res) => {
-    const { name, description, createdById } = req.body;
-    upload.single('profileImage')
-    validateBody(schemaValidation);
-    try {
-        const imageFile = data.getFile ? data.getFile('profileImage') : null;
-        
-        if (imageFile) {
-            const ext = imageFile.filename.split('.').pop();
-            const fileName = uuidv4() + '.' + ext;
-            const targetFolder = path.join(STORAGE_PATH, 'rooms');
-            if (!fs.existsSync(targetFolder)) {
-                fs.mkdirSync(targetFolder, { recursive: true });
+router.post('/', upload.single('profileImage'),
+    validateBody(schemaValidation),
+    async (req, res) => {
+
+        try {
+            const data = req.validatedBody
+            const imageFile = data.getFile ? data.getFile('profileImage') : null;
+
+            if (imageFile) {
+                const ext = imageFile.filename.split('.').pop();
+                const fileName = uuidv4() + '.' + ext;
+                const targetFolder = path.join(STORAGE_PATH, 'rooms');
+
+                if (!fs.existsSync(targetFolder)) {
+                    fs.mkdirSync(targetFolder, { recursive: true });
+                }
+
+                fs.writeFileSync(path.join(targetFolder, fileName), imageFile.data);
+                data.profileImage = '/uploads/rooms/' + fileName;
             }
-            fs.writeFileSync(path.join(targetFolder, fileName), imageFile.data);
-            data.profileImage = '/uploads/rooms/' + fileName;
+            const result = await prismaClient.$transaction(async (prisma) => {
+                const newRoom = await prisma.roomChat.create({
+                    data: {
+                        name: data.name,
+                        description: data.description,
+                         profileImage: data.profileImage || null,
+                        maxMember: data.maxMember,
+                        createdById: data.createdById,
+                    }
+                });
+
+                const newParticipant = await prisma.roomParticipants.create({
+                    data: {
+                        roomId: newRoom.id,
+                        userId: data.createdById,
+                        role: 'admin'
+                    },
+                });
+                return newRoom;
+
+            });
+
+            res.status(201).json(result);
+        } catch (error) {
+            console.error("Failed to create new room:", error);
+            res.status(500).json({ message: "Internal Server Error" });
         }
-        const result = await prismaClient.$transaction(async (prisma) => {
-            const newRoom = await prisma.roomChat.create({
-                data: {
-                    name,
-                    description,
-                    createdById,
-                    maxMember
-                },
-            });
-
-            const newParticipant = await prisma.roomParticipants.create({
-                data: {
-                    roomId: newRoom.id,
-                    userId: createdById,
-                },
-            });
-            return newRoom;
-
-        });
-
-        res.status(201).json(result);
-    } catch (error) {
-        console.error("Failed to create new room:", error);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-});
+    });
 
 router.get('/', async (req, res) => {
     try {
-        const data = await prismaClient.rooms.findMany({
-            include : {
+        const data = await prismaClient.roomChat.findMany({
+            include: {
                 _count: {
-                    select: { participants: true}
+                    select: { participants: true }
                 },
                 createdBy: true,
             }
@@ -97,10 +108,10 @@ router.get('/my-rooms/:userId', async (req, res) => {
         const data = await prismaClient.roomParticipants.findMany({
             where: { userId: userId },
             include: {
-                roomChats: true,
+                roomChat: true,
             }
         });
-        const rooms = data.map(participation => participation.roomChats);
+        const rooms = data.map(participation => participation.roomChat);
         res.json(rooms);
     } catch (error) {
         console.error("Failed to fetch data from database:", error);
@@ -111,7 +122,7 @@ router.get('/my-rooms/:userId', async (req, res) => {
 router.get('/detail/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const room = await prismaClient.rooms.findUnique({
+        const room = await prismaClient.roomChat.findUnique({
             where: { id: id },
             include: {
                 createdBy: true,

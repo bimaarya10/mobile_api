@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-export const validateBody = (schema) => async (req, res, next) => {
+// 1. UBAH PARAMETER DISINI: dari 'schema' menjadi 'schemaOrFn'
+export const validateBody = (schemaOrFn) => async (req, res, next) => {
     try {
         let body = { ...req.body };
 
@@ -9,7 +10,6 @@ export const validateBody = (schema) => async (req, res, next) => {
             Object.keys(body).forEach((key) => {
                 if (typeof body[key] === 'string') {
                     try {
-
                         const trimmed = body[key].trim();
                         if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
                             (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
@@ -20,7 +20,11 @@ export const validateBody = (schema) => async (req, res, next) => {
                 }
             });
         }
-
+        
+        // 2. DISINI VARIABELNYA JADI COCOK
+        const schema = typeof schemaOrFn === 'function' ? schemaOrFn(req) : schemaOrFn;
+        
+        // 3. Gunakan 'schema' yang sudah diproses
         const result = await schema.safeParseAsync(body);
 
         if (!result.success) {
@@ -37,7 +41,7 @@ export const validateBody = (schema) => async (req, res, next) => {
             return res.status(422).json({
                 statusCode: 422,
                 statusMessage: "Validation Error",
-                data: formattedErrors, // Detail error Zod
+                data: formattedErrors, 
             });
         }
 

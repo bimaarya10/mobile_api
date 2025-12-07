@@ -6,6 +6,8 @@ import coffeeSpotRoutes from './routes/coffee-spot.js';
 import registerRoutes from './routes/register.js';
 import usersRoutes from './routes/users.js';
 import authRoutes from './routes/auth.js';
+import roomRoutes from './routes/rooms.js';
+import chatRoutes from './routes/chats.js';
 import { authMiddleware } from './middleware/auth.js';
 
 const app = express();
@@ -25,6 +27,7 @@ app.use(express.json());
 
 app.use('/auth', authRoutes);
 app.use('/register', registerRoutes);
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Middleware untuk autentikasi
 app.use(authMiddleware);
@@ -90,6 +93,8 @@ io.on('connection', (socket) => {
 
 app.use('/coffee-spot', coffeeSpotRoutes);
 app.use('/users', usersRoutes)
+app.use('/rooms', roomRoutes);
+app.use('/chats', chatRoutes);
 
 const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 const port = 3000;

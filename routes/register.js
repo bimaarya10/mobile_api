@@ -17,10 +17,10 @@ const upload = multer({
 const allowedImageTypes = ["image/jpeg", "image/jpg", "image/png"];
 const maxProfileImageSize = 2 * 1024 * 1024;
 
-const schemaValidation = z.object({
+const schemaValidation = (req) => z.object({
     name: z.coerce.string().refine((data) => data.length > 0, { message: "Field is required" }),
-    username: z.coerce.string().refine((data) => data.length > 0, { message: "Field is required" }),
-    email: z.coerce.string().email({ message: "Invalid email address" }).refine((data) => data.length > 0, { message: "Field is required" }),
+    username: z.coerce.string().refine((data) => data.length > 0, { message: "Field is required" }).refine(async (data) => await prismaClient.users.findUnique({ where: { username: data, NOT : {id : req.params.id} } }).then(user => !user), { message: "Username already taken" }),
+    email: z.coerce.string().email({ message: "Invalid email address" }).refine((data) => data.length > 0, { message: "Field is required" }).refine(async (data) => await prismaClient.users.findUnique({ where: { email: data, NOT : {id : req.params.id} } }).then(user => !user), { message: "Email already registered" }),
     password: z.coerce.string().min(8, { message: "Password must be at least 8 characters long" }).refine((data) => data.length > 0, { message: "Field is required" }),
     profileImage: z.any().optional().refine(
         (image) => !image || typeof image === "string" || allowedImageTypes.includes(image.type),

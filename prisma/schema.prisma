@@ -43,6 +43,7 @@ model RoomParticipants{
   id          String      @id @default(uuid())
   roomId      String      @map("room_id")
   userId      String      @map("user_id")
+  role        String      @db.VarChar(50) @default("member")
   joinedAt    DateTime    @default(now()) @map("joined_at")
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
@@ -56,6 +57,7 @@ model RoomParticipants{
 model RoomChat {
   id            String      @id @default(uuid())
   name          String      @db.VarChar(100)
+  description   String?     @db.Text
   profileImage  String?     @map("profile_image") @db.VarChar(255)
   maxMember     Int         @map("max_member") @default(10)
   createdById   String      @map("created_by_id")

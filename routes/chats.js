@@ -24,6 +24,7 @@ router.get('/room/:id', async (req, res) => {
             where: { roomId: id },
             orderBy: { createdAt: 'asc' },
             include: { sender: true },
+            take: 100,
         });
         if (chats) {
             res.json(chats);
