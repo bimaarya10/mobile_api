@@ -8,13 +8,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum ParticipantStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+}
+
+enum Gender {
+  male
+  female
+  unknown
+}
+
 model Users {
   id           String       @id @default(uuid())
   name         String       @db.VarChar(250)
   username     String       @unique @db.VarChar(50)
   email        String       @unique @db.VarChar(100)
   region       String?      @db.VarChar(100)
-  sex          String?       @db.VarChar(10)
+  sex          Gender?      @default(unknown)
   password     String       @db.VarChar(100)
   profileImage String?      @map("profile_image") @db.VarChar(255)
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamp(6)
@@ -43,10 +60,12 @@ model RoomParticipants{
   id          String      @id @default(uuid())
   roomId      String      @map("room_id")
   userId      String      @map("user_id")
-  role        String      @db.VarChar(50) @default("member")
+  role        Role        @default(MEMBER)
+  status      ParticipantStatus      @default(PENDING)
   joinedAt    DateTime    @default(now()) @map("joined_at")
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
+  lastSeenAt  DateTime   @map("last_seen_at") @default(now())
   roomChat    RoomChat    @relation(fields: [roomId], references: [id], onDelete: Cascade, map: "room_participants_room_id_fkey")
   user        Users       @relation(fields: [userId], references: [id], onDelete: Cascade, map: "room_participants_user_id_fkey")
 
