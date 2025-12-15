@@ -96,6 +96,13 @@ router.get('/', async (req, res) => {
                 _count: {
                     select: { participants: true }
                 },
+                participants : {
+                    select : {
+                        user : {
+                            select: { id: true, name: true, username: true, profileImage: true }
+                        }   
+                    }
+                },
                 createdBy: {
                     select: { id: true, name: true, username: true, profileImage: true }
                 },
@@ -203,7 +210,7 @@ router.delete('/logout/:roomId', async (req, res) => {
     }
 });
 
-router.delete('/rooms/remove-member/:participantId', async (req, res) => {
+router.delete('/remove-member/:participantId', async (req, res) => {
     const { participantId } = req.params;
     try {
         const participant = await prismaClient.roomParticipants.findUnique({
