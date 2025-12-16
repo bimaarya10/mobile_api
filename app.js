@@ -2,13 +2,22 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import env from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 import coffeeSpotRoutes from './routes/coffee-spot.js';
 import registerRoutes from './routes/register.js';
 import usersRoutes from './routes/users.js';
 import authRoutes from './routes/auth.js';
 import roomRoutes from './routes/rooms.js';
 import chatRoutes from './routes/chats.js';
+
 import { authMiddleware } from './middleware/auth.js';
+import { verifyToken } from './utils/manage-token.js'; 
+import { prismaClient } from './src/prisma-client.js'; 
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 env.config();
@@ -22,13 +31,12 @@ const io = new Server(server, {
     }
 });
 
-// Parsing request to JSON
 app.use(express.json());
 
 app.use('/auth', authRoutes);
 app.use('/register', registerRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-// Middleware untuk autentikasi
 app.use(authMiddleware);
 
 io.use((socket, next) => {
@@ -38,6 +46,7 @@ io.use((socket, next) => {
         return next(new Error("Authentication error: No token provided"));
     }
 
+
     const decoded = verifyToken(token);
     if (!decoded) {
         return next(new Error("Authentication error: Invalid token"));
@@ -46,6 +55,7 @@ io.use((socket, next) => {
     socket.user = decoded; 
     next();
 });
+
 
 io.on('connection', (socket) => {
     console.log(`User Connected: ${socket.user.email} (ID: ${socket.user.id})`);
