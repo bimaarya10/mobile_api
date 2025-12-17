@@ -345,6 +345,15 @@ router.post('/join/:roomId', async (req, res) => {
     const userId = req.user.id;
 
     try {
+        const room = await prismaClient.roomChat.findUnique({
+            where: { id: roomId },
+            include: {
+                countMember: {
+                    select: { participants: true }
+                },
+            }
+        });
+
         const existingParticipant = await prismaClient.roomParticipants.findFirst({
             where: {
                 roomId: roomId,
@@ -353,7 +362,11 @@ router.post('/join/:roomId', async (req, res) => {
         });
 
         if (existingParticipant) {
-            return res.status(400).json({ message: "Request already sent or already joined" });
+            return res.status(400).json({ message: "Request already sent or you are already joined this room" });
+        }
+
+        if( room.countMember.participants >= room.maxMember) {
+            return res.status(400).json({ message: "Room is full" });
         }
 
         const newParticipant = await prismaClient.roomParticipants.create({
