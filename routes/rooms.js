@@ -96,11 +96,11 @@ router.get('/', async (req, res) => {
                 _count: {
                     select: { participants: true }
                 },
-                participants : {
-                    select : {
-                        user : {
+                participants: {
+                    select: {
+                        user: {
                             select: { id: true, name: true, username: true, profileImage: true }
-                        }   
+                        }
                     }
                 },
                 createdBy: {
@@ -160,10 +160,10 @@ router.get('/requests/:roomId', async (req, res) => {
         const data = await prismaClient.roomParticipants.findMany({
             where: {
                 status: 'PENDING',
-                    roomChat: {
-                        createdById: userId,
-                        id: roomId
-                    }
+                roomChat: {
+                    createdById: userId,
+                    id: roomId
+                }
             },
             include: {
                 user: {
@@ -187,8 +187,8 @@ router.delete('/logout/:roomId', async (req, res) => {
                 roomId: roomId,
                 userId: userId,
             },
-            include : {
-                roomChat : true
+            include: {
+                roomChat: true
             }
         });
 
@@ -196,7 +196,7 @@ router.delete('/logout/:roomId', async (req, res) => {
             return res.status(404).json({ message: "You are not a member of this room" });
         }
 
-        if(participant.roomChat.createdById === userId){
+        if (participant.roomChat.createdById === userId) {
             return res.status(403).json({ message: "Room creator cannot leave the room. Consider deleting the room instead." });
         }
 
@@ -224,7 +224,7 @@ router.delete('/remove-member/:participantId', async (req, res) => {
             return res.status(404).json({ message: "Participant not found" });
         }
 
-        if(participant.roomChat.createdById !== req.user.id){
+        if (participant.roomChat.createdById !== req.user.id) {
             return res.status(403).json({ message: "You are not authorized to remove this member" });
         }
 
@@ -237,6 +237,28 @@ router.delete('/remove-member/:participantId', async (req, res) => {
         res.status(500).json({ message: "Internal Server Error" });
     }
 });
+
+router.delete('/requests/reject/:requestId', async (req, res) => {
+    const { requestId } = req.params
+    try {
+        if (!request) {
+            return res.status(404).json({ message: "Request not found" });
+        }
+
+        if (request.roomChat.createdById !== req.user.id) {
+            return res.status(403).json({ message: "You are not authorized to approve this request" });
+        }
+        const request = await prismaClient.roomParticipants.delete({
+            where: {
+                id: requestId
+            }
+        })
+        res.status(200).json({ message: "Request rejected successfully" })
+    } catch (error) {
+        console.error("Failed to reject request:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+})
 
 router.put('/requests/approve/:requestId', async (req, res) => {
     const { requestId } = req.params;
@@ -252,7 +274,7 @@ router.put('/requests/approve/:requestId', async (req, res) => {
             return res.status(404).json({ message: "Request not found" });
         }
 
-        if(request.roomChat.createdById !== req.user.id){
+        if (request.roomChat.createdById !== req.user.id) {
             return res.status(403).json({ message: "You are not authorized to approve this request" });
         }
 
@@ -274,22 +296,22 @@ router.get('/my-rooms', async (req, res) => {
     const userId = req.user.id;
     try {
         const participants = await prismaClient.roomParticipants.findMany({
-            where: { 
+            where: {
                 userId: userId,
-                status: 'ACTIVE' 
+                status: 'ACTIVE'
             },
             include: {
-                roomChat: true, 
+                roomChat: true,
             }
         });
 
         const roomsWithUnread = await Promise.all(participants.map(async (p) => {
-            
+
             const unreadCount = await prismaClient.chats.count({
                 where: {
                     roomId: p.roomId,
                     createdAt: {
-                        gt: p.lastSeenAt 
+                        gt: p.lastSeenAt
                     }
                 }
             });
@@ -301,7 +323,7 @@ router.get('/my-rooms', async (req, res) => {
             });
 
             return {
-                ...p.roomChat,   
+                ...p.roomChat,
                 unreadCount: unreadCount,
                 lastMessage: lastMessage ? lastMessage.message : null,
                 lastMessageTime: lastMessage ? lastMessage.createdAt : null
@@ -338,8 +360,8 @@ router.post('/join/:roomId', async (req, res) => {
             data: {
                 roomId: roomId,
                 userId: userId,
-                role: 'MEMBER',    
-                status: 'PENDING'  
+                role: 'MEMBER',
+                status: 'PENDING'
             }
         });
         res.status(201).json({ message: "Request sent", data: newParticipant });
