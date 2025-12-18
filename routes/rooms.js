@@ -239,26 +239,34 @@ router.delete('/remove-member/:participantId', async (req, res) => {
 });
 
 router.delete('/requests/reject/:requestId', async (req, res) => {
-    const { requestId } = req.params
+    const { requestId } = req.params;
+    const userId = req.user.id; // <--- WAJIB ADA
+
     try {
-        if (!request) {
+        const requestToCheck = await prismaClient.roomParticipants.findUnique({
+            where: { id: requestId },
+            include: { roomChat: true } // Include room info buat cek admin
+        });
+
+        if (!requestToCheck) {
             return res.status(404).json({ message: "Request not found" });
         }
 
-        if (request.roomChat.createdById !== req.user.id) {
-            return res.status(403).json({ message: "You are not authorized to approve this request" });
+        if (requestToCheck.roomChat.createdById !== userId) {
+            return res.status(403).json({ message: "You are not authorized to reject this request" });
         }
-        const request = await prismaClient.roomParticipants.delete({
-            where: {
-                id: requestId
-            }
-        })
-        res.status(200).json({ message: "Request rejected successfully" })
+
+        await prismaClient.roomParticipants.delete({
+            where: { id: requestId }
+        });
+
+        res.status(200).json({ message: "Request rejected successfully" });
+
     } catch (error) {
         console.error("Failed to reject request:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
-})
+});
 
 router.put('/requests/approve/:requestId', async (req, res) => {
     const { requestId } = req.params;
@@ -348,7 +356,7 @@ router.post('/join/:roomId', async (req, res) => {
         const room = await prismaClient.roomChat.findUnique({
             where: { id: roomId },
             include: {
-                countMember: {
+                _count: {
                     select: { participants: true }
                 },
             }
@@ -365,7 +373,7 @@ router.post('/join/:roomId', async (req, res) => {
             return res.status(400).json({ message: "Request already sent or you are already joined this room" });
         }
 
-        if( room.countMember.participants >= room.maxMember) {
+        if( room._count.participants >= room.maxMember) {
             return res.status(400).json({ message: "Room is full" });
         }
 
